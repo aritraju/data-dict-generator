@@ -1,0 +1,10 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+output/*.html
+output/*.md
+sample_data/*.db
+.DS_Store

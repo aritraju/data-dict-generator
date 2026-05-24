@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Data Catalog — healthcare_sample</title>
+<style>
+  :root {
+    --navy: #1B3A6B; --accent: #2E75B6; --light: #F2F4F8;
+    --warn: #FFF3CD; --warn-border: #FFC107;
+    --green: #D4EDDA; --green-border: #28A745;
+    --red: #F8D7DA;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 14px; color: #1A1A2E; background: #F8F9FA; }
+  header { background: var(--navy); color: white; padding: 24px 40px; }
+  header h1 { font-size: 26px; margin-bottom: 6px; }
+  header p  { font-size: 13px; opacity: 0.8; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 40px; }
+  /* KPI bar */
+  .kpi-row { display: flex; gap: 16px; margin-bottom: 28px; }
+  .kpi { background: white; border-radius: 8px; padding: 16px 24px; flex: 1;
+         border-left: 4px solid var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .kpi .val { font-size: 28px; font-weight: bold; color: var(--navy); }
+  .kpi .lbl { font-size: 12px; color: #666; margin-top: 2px; }
+  /* Sidebar + content */
+  .layout { display: flex; gap: 24px; }
+  .sidebar { width: 220px; flex-shrink: 0; }
+  .sidebar ul { list-style: none; position: sticky; top: 16px; }
+  .sidebar li a { display: block; padding: 8px 12px; border-radius: 6px; text-decoration: none;
+                  color: var(--navy); font-size: 13px; margin-bottom: 4px; }
+  .sidebar li a:hover { background: var(--light); }
+  .content { flex: 1; min-width: 0; }
+  /* Table cards */
+  .table-card { background: white; border-radius: 10px; padding: 24px;
+                margin-bottom: 28px; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+  .table-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .table-name { font-size: 20px; font-weight: bold; color: var(--navy); }
+  .badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+  .badge-rows { background: var(--light); color: var(--accent); }
+  .table-desc { color: #444; margin-bottom: 10px; line-height: 1.6; }
+  .purpose { font-style: italic; color: #555; margin-bottom: 16px; font-size: 13px; }
+  /* Tags row */
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .tag { padding: 3px 10px; border-radius: 12px; font-size: 11px; }
+  .tag-fk    { background: #E8F4FD; color: #1a7bb9; border: 1px solid #bee3f8; }
+  .tag-ref   { background: #EDF7ED; color: #276827; border: 1px solid #b8ddb8; }
+  /* Columns table */
+  .col-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+  .col-table th { background: var(--light); color: var(--navy); padding: 8px 12px;
+                  text-align: left; font-size: 12px; border-bottom: 2px solid #D0D6E0; }
+  .col-table td { padding: 8px 12px; border-bottom: 1px solid #EEF0F4; vertical-align: top; }
+  .col-table tr:hover td { background: #FAFBFC; }
+  .pk-badge  { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px;
+               font-weight: bold; background: #FFF3CD; color: #856404; }
+  .fk-badge  { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10px;
+               font-weight: bold; background: #E8F4FD; color: #1a7bb9; }
+  .null-high { color: #dc3545; font-weight: bold; }
+  .null-ok   { color: #28a745; }
+  /* Example query */
+  .query-block { background: #1E2A3A; color: #A8D8A8; border-radius: 8px; padding: 14px 18px;
+                 font-family: monospace; font-size: 12px; white-space: pre-wrap;
+                 overflow-x: auto; margin-bottom: 16px; }
+  /* Warnings */
+  .warnings { background: var(--warn); border: 1px solid var(--warn-border); border-radius: 6px;
+              padding: 12px 16px; margin-bottom: 12px; }
+  .warnings h4 { color: #856404; font-size: 12px; margin-bottom: 6px; }
+  .warnings li { font-size: 12px; color: #533f03; margin-left: 16px; }
+  /* DDL toggle */
+  details { margin-top: 8px; }
+  summary { cursor: pointer; font-size: 12px; color: var(--accent); user-select: none; }
+  pre.ddl { background: var(--light); padding: 12px; border-radius: 6px; font-size: 11px;
+            overflow-x: auto; margin-top: 8px; white-space: pre-wrap; }
+  /* Search */
+  #search { width: 100%; padding: 10px 14px; border: 1px solid #D0D6E0; border-radius: 6px;
+            font-size: 14px; margin-bottom: 20px; outline: none; }
+  #search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(46,117,182,.15); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📖 Data Catalog — healthcare_sample</h1>
+  <p>Generated 2026-05-24 06:42 UTC &nbsp;·&nbsp; AI-powered descriptions via Ollama (llama3.2) &nbsp;·&nbsp; Local, zero-cost</p>
+</header>
+
+<div class="container">
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="val">6</div><div class="lbl">Tables</div></div>
+    <div class="kpi"><div class="val">8,350</div><div class="lbl">Total Rows</div></div>
+    <div class="kpi"><div class="val">50</div><div class="lbl">Total Columns</div></div>
+    <div class="kpi"><div class="val">6</div><div class="lbl">Tables with Warnings</div></div>
+  </div>
+
+  <input type="text" id="search" placeholder="🔍 Search tables and columns..." oninput="filterTables(this.value)"/>
+
+  <div class="layout">
+    <!-- Sidebar nav -->
+    <div class="sidebar">
+      <ul>
+        
+        <li><a href="#claims">claims</a></li>
+        
+        <li><a href="#diagnoses">diagnoses</a></li>
+        
+        <li><a href="#encounters">encounters</a></li>
+        
+        <li><a href="#medications">medications</a></li>
+        
+        <li><a href="#patients">patients</a></li>
+        
+        <li><a href="#providers">providers</a></li>
+        
+      </ul>
+    </div>
+
+    <!-- Table cards -->
+    <div class="content">
+      
+      <div class="table-card" id="claims" data-searchtext="claims The claims table stores records related to claims. It contains 1,800 rows and 9 columns. claim_id encounter_id patient_id claim_date billed_amount allowed_amount paid_amount claim_status denial_reason ">
+
+        <div class="table-header">
+          <span class="table-name">claims</span>
+          <span class="badge badge-rows">1,800 rows</span>
+          <span class="badge badge-rows">9 cols</span>
+        </div>
+
+        <p class="table-desc">The claims table stores records related to claims. It contains 1,800 rows and 9 columns.</p>
+        <p class="purpose">💡 Stores claims data for operational and analytical use.</p>
+
+        
+        <div class="tags">
+          
+          <span class="tag tag-fk">🔗 → patients.patient_id</span>
+          
+          <span class="tag tag-fk">🔗 → encounters.encounter_id</span>
+          
+          
+        </div>
+        
+
+        
+        <div class="warnings">
+          <h4>⚠️ Data Quality Warnings</h4>
+          <ul><li>Column &#39;allowed_amount&#39; has 81.3% null values</li><li>Column &#39;paid_amount&#39; has 81.3% null values</li><li>Column &#39;claim_status&#39; has only 5 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;denial_reason&#39; has 90.7% null values</li><li>Column &#39;denial_reason&#39; has only 3 distinct values — consider an ENUM or CHECK constraint</li></ul>
+        </div>
+        
+
+        <!-- Column table -->
+        <table class="col-table">
+          <thead>
+            <tr>
+              <th>Column</th><th>Type</th><th>Nullable</th>
+              <th>Null %</th><th>Distinct</th><th>Min / Max</th>
+              <th>Sample Values</th><th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+          
+          <tr>
+            <td>
+              <strong>claim_id</strong>
+              <br/><span class="pk-badge">PK</span>
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,800<br/><small style="color:#888">100.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>CLM0000001, CLM0000002, CLM0000003</small></td>
+            <td>This column uniquely identifies each claim with a unique alphanumeric identifier.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>encounter_id</strong>
+              
+              <br/><span class="fk-badge">FK → encounters</span>
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,034<br/><small style="color:#888">57.4%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>ENC0001405, ENC0000015, ENC0000790</small></td>
+            <td>This column uniquely identifies each encounter in a healthcare setting with a standardized identifier format.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>patient_id</strong>
+              
+              <br/><span class="fk-badge">FK → patients</span>
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>483<br/><small style="color:#888">26.8%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>PAT000364, PAT000410, PAT000488</small></td>
+            <td>This column uniquely identifies patients in a healthcare claims database with a standardized patient ID format.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>claim_date</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,138<br/><small style="color:#888">63.2%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2022-08-15, 2024-12-19, 2024-04-19</small></td>
+            <td>The claim_date column stores dates of claims in a standardized format with year, month, and day components.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>billed_amount</strong>
+              
+              
+            </td>
+            <td><code>REAL</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,800<br/><small style="color:#888">100.0%</small></td>
+            <td>
+              
+                <small>271.76<br/>84871.14</small>
+              
+            </td>
+            <td><small>84871.14, 84831.75, 84723.89</small></td>
+            <td>The billed_amount column stores the total amount billed for a claim in dollars.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>allowed_amount</strong>
+              
+              
+            </td>
+            <td><code>REAL</code></td>
+            <td>Yes</td>
+            <td class="null-high">81.3%</td>
+            <td>336<br/><small style="color:#888">18.7%</small></td>
+            <td>
+              
+                <small>151.96<br/>76561.48</small>
+              
+            </td>
+            <td><small>76561.48, 73572.84, 72261.81</small></td>
+            <td>The allowed_amount column represents the maximum amount a claimant is allowed to pay for a specific claim.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>paid_amount</strong>
+              
+              
+            </td>
+            <td><code>REAL</code></td>
+            <td>Yes</td>
+            <td class="null-high">81.3%</td>
+            <td>336<br/><small style="color:#888">18.7%</small></td>
+            <td>
+              
+                <small>140.33<br/>68740.84</small>
+              
+            </td>
+            <td><small>68740.84, 67583.39, 67520.79</small></td>
+            <td>The paid_amount column records the amount of money paid out for each claim in a real value.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>claim_status</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>5<br/><small style="color:#888">0.3%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Pending, Appealed, Denied</small></td>
+            <td>The claim_status column stores a textual description of the current status of a claim in the database.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>denial_reason</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-high">90.7%</td>
+            <td>3<br/><small style="color:#888">0.2%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Missing documentation, Not medically necessary, Out of network</small></td>
+            <td>The denial_reason column stores reasons for denied claims, including medical necessity and billing-related issues.</td>
+          </tr>
+          
+          </tbody>
+        </table>
+
+        <!-- Example query -->
+        <div class="query-block">SELECT * FROM claims LIMIT 10;</div>
+
+        <!-- DDL -->
+        <details>
+          <summary>View CREATE TABLE DDL</summary>
+          <pre class="ddl">CREATE TABLE claims (
+        claim_id        TEXT PRIMARY KEY,
+        encounter_id    TEXT NOT NULL REFERENCES encounters(encounter_id),
+        patient_id      TEXT NOT NULL REFERENCES patients(patient_id),
+        claim_date      TEXT NOT NULL,
+        billed_amount   REAL NOT NULL,
+        allowed_amount  REAL,
+        paid_amount     REAL,
+        claim_status    TEXT CHECK(claim_status IN (&#39;Submitted&#39;,&#39;Approved&#39;,&#39;Denied&#39;,&#39;Pending&#39;,&#39;Appealed&#39;)),
+        denial_reason   TEXT
+    )</pre>
+        </details>
+
+      </div>
+      
+      <div class="table-card" id="diagnoses" data-searchtext="diagnoses The diagnoses table stores information about medical diagnoses made during patient encounters, providing a central repository for clinical data that can be used to support decision-making and quality improvement initiatives. diagnosis_id encounter_id icd_code description diagnosis_type diagnosed_date ">
+
+        <div class="table-header">
+          <span class="table-name">diagnoses</span>
+          <span class="badge badge-rows">2,500 rows</span>
+          <span class="badge badge-rows">6 cols</span>
+        </div>
+
+        <p class="table-desc">The diagnoses table stores information about medical diagnoses made during patient encounters, providing a central repository for clinical data that can be used to support decision-making and quality improvement initiatives.</p>
+        <p class="purpose">💡 To provide a standardized way of capturing and managing clinical diagnosis data across the organization.</p>
+
+        
+        <div class="tags">
+          
+          <span class="tag tag-fk">🔗 → encounters.encounter_id</span>
+          
+          
+        </div>
+        
+
+        
+        <div class="warnings">
+          <h4>⚠️ Data Quality Warnings</h4>
+          <ul><li>Column &#39;diagnosis_type&#39; has only 3 distinct values — consider an ENUM or CHECK constraint</li></ul>
+        </div>
+        
+
+        <!-- Column table -->
+        <table class="col-table">
+          <thead>
+            <tr>
+              <th>Column</th><th>Type</th><th>Nullable</th>
+              <th>Null %</th><th>Distinct</th><th>Min / Max</th>
+              <th>Sample Values</th><th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+          
+          <tr>
+            <td>
+              <strong>diagnosis_id</strong>
+              <br/><span class="pk-badge">PK</span>
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>2,500<br/><small style="color:#888">100.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>DX0000001, DX0000002, DX0000003</small></td>
+            <td>This column uniquely identifies each diagnosis with a standardized alphanumeric code.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>encounter_id</strong>
+              
+              <br/><span class="fk-badge">FK → encounters</span>
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,222<br/><small style="color:#888">48.9%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>ENC0001353, ENC0001301, ENC0001074</small></td>
+            <td>This column uniquely identifies each patient encounter in the database with a unique identifier string.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>icd_code</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>10<br/><small style="color:#888">0.4%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>J45, F41, N18</small></td>
+            <td>This column stores unique International Classification of Diseases (ICD) codes for diagnoses.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>description</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>10<br/><small style="color:#888">0.4%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Asthma, Anxiety Disorder, Chronic Kidney Disease</small></td>
+            <td>This column stores a brief textual description of each diagnosis in the diagnoses table.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>diagnosis_type</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>3<br/><small style="color:#888">0.1%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Primary, Secondary, Tertiary</small></td>
+            <td>This column stores descriptive types of medical diagnoses, such as primary, secondary, and tertiary conditions.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>diagnosed_date</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,352<br/><small style="color:#888">54.1%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2020-05-17, 2024-05-18, 2023-12-17</small></td>
+            <td>The diagnosed_date column stores dates of diagnosis for patients in the database.</td>
+          </tr>
+          
+          </tbody>
+        </table>
+
+        <!-- Example query -->
+        <div class="query-block">SELECT * FROM diagnoses WHERE icd_code = &#39;I10&#39; AND diagnosis_type = &#39;Primary&#39;; -- Retrieves all primary diagnoses for patients with ICD-10 code I10.</div>
+
+        <!-- DDL -->
+        <details>
+          <summary>View CREATE TABLE DDL</summary>
+          <pre class="ddl">CREATE TABLE diagnoses (
+        diagnosis_id    TEXT PRIMARY KEY,
+        encounter_id    TEXT NOT NULL REFERENCES encounters(encounter_id),
+        icd_code        TEXT NOT NULL,
+        description     TEXT NOT NULL,
+        diagnosis_type  TEXT CHECK(diagnosis_type IN (&#39;Primary&#39;,&#39;Secondary&#39;,&#39;Tertiary&#39;)),
+        diagnosed_date  TEXT NOT NULL
+    )</pre>
+        </details>
+
+      </div>
+      
+      <div class="table-card" id="encounters" data-searchtext="encounters The encounters table stores information about patient encounters with healthcare providers, including details such as encounter date, type, and facility name. It serves as a central repository for tracking patient interactions with providers, facilitating data analysis and reporting across the organization. encounter_id patient_id provider_id encounter_date encounter_type admission_date discharge_date facility_name chief_complaint discharge_status ">
+
+        <div class="table-header">
+          <span class="table-name">encounters</span>
+          <span class="badge badge-rows">1,500 rows</span>
+          <span class="badge badge-rows">10 cols</span>
+        </div>
+
+        <p class="table-desc">The encounters table stores information about patient encounters with healthcare providers, including details such as encounter date, type, and facility name. It serves as a central repository for tracking patient interactions with providers, facilitating data analysis and reporting across the organization.</p>
+        <p class="purpose">💡 To track and analyze patient encounters with healthcare providers.</p>
+
+        
+        <div class="tags">
+          
+          <span class="tag tag-fk">🔗 → providers.provider_id</span>
+          
+          <span class="tag tag-fk">🔗 → patients.patient_id</span>
+          
+          
+          <span class="tag tag-ref">← referenced by claims</span>
+          
+          <span class="tag tag-ref">← referenced by diagnoses</span>
+          
+          <span class="tag tag-ref">← referenced by medications</span>
+          
+        </div>
+        
+
+        
+        <div class="warnings">
+          <h4>⚠️ Data Quality Warnings</h4>
+          <ul><li>Column &#39;encounter_type&#39; has only 5 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;admission_date&#39; has 80.7% null values</li><li>Column &#39;discharge_date&#39; has 80.7% null values</li><li>Column &#39;facility_name&#39; has only 3 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;chief_complaint&#39; has only 5 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;discharge_status&#39; has 85.5% null values</li><li>Column &#39;discharge_status&#39; has only 3 distinct values — consider an ENUM or CHECK constraint</li></ul>
+        </div>
+        
+
+        <!-- Column table -->
+        <table class="col-table">
+          <thead>
+            <tr>
+              <th>Column</th><th>Type</th><th>Nullable</th>
+              <th>Null %</th><th>Distinct</th><th>Min / Max</th>
+              <th>Sample Values</th><th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+          
+          <tr>
+            <td>
+              <strong>encounter_id</strong>
+              <br/><span class="pk-badge">PK</span>
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,500<br/><small style="color:#888">100.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>ENC0000001, ENC0000002, ENC0000003</small></td>
+            <td>This column uniquely identifies each encounter with a unique alphanumeric identifier.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>patient_id</strong>
+              
+              <br/><span class="fk-badge">FK → patients</span>
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>471<br/><small style="color:#888">31.4%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>PAT000109, PAT000003, PAT000422</small></td>
+            <td>This column uniquely identifies patients in encounters with a standardized patient ID format.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>provider_id</strong>
+              
+              <br/><span class="fk-badge">FK → providers</span>
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>50<br/><small style="color:#888">3.3%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>PRV0047, PRV0041, PRV0032</small></td>
+            <td>This column uniquely identifies a healthcare provider by their unique ID or identifier code.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>encounter_date</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,036<br/><small style="color:#888">69.1%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2024-10-12, 2022-08-07, 2024-10-17</small></td>
+            <td>The encounter_date column stores dates of past encounters in a standardized format.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>encounter_type</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>5<br/><small style="color:#888">0.3%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Telehealth, Preventive, Inpatient</small></td>
+            <td>This column stores the type of encounter, such as Telehealth, Preventive, or Inpatient, for each record in the encounters table.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>admission_date</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-high">80.7%</td>
+            <td>270<br/><small style="color:#888">18.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2022-08-07, 2023-09-12, 2020-04-16</small></td>
+            <td>The admission_date column stores dates of patient admissions in a human-readable format.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>discharge_date</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-high">80.7%</td>
+            <td>268<br/><small style="color:#888">17.9%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2024-12-12, 2024-10-02, 2024-07-25</small></td>
+            <td>The discharge_date column records the date a patient was discharged from care or treatment.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>facility_name</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>3<br/><small style="color:#888">0.2%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>City Medical Center, University Medical Center, Regional Medical Center</small></td>
+            <td>This column stores the names of facilities where encounters occurred, such as hospitals or medical centers.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>chief_complaint</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">18.9%</td>
+            <td>5<br/><small style="color:#888">0.3%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Chest pain, Shortness of breath, Follow-up</small></td>
+            <td>The chief_complaint column captures patients&#39; primary reasons for visiting the emergency department or clinic.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>discharge_status</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-high">85.5%</td>
+            <td>3<br/><small style="color:#888">0.2%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Transfer, Routine discharge, AMA</small></td>
+            <td>The discharge_status column records the reason for a patient&#39;s hospital discharge or departure.</td>
+          </tr>
+          
+          </tbody>
+        </table>
+
+        <!-- Example query -->
+        <div class="query-block">SELECT * FROM encounters WHERE provider_id = &#39;provider_123&#39; AND discharge_date IS NOT NULL; -- Retrieves all encounters where a specific provider was involved and the patient was discharged.</div>
+
+        <!-- DDL -->
+        <details>
+          <summary>View CREATE TABLE DDL</summary>
+          <pre class="ddl">CREATE TABLE encounters (
+        encounter_id        TEXT PRIMARY KEY,
+        patient_id          TEXT NOT NULL REFERENCES patients(patient_id),
+        provider_id         TEXT NOT NULL REFERENCES providers(provider_id),
+        encounter_date      TEXT NOT NULL,
+        encounter_type      TEXT NOT NULL,
+        admission_date      TEXT,
+        discharge_date      TEXT,
+        facility_name       TEXT NOT NULL,
+        chief_complaint     TEXT,
+        discharge_status    TEXT
+    )</pre>
+        </details>
+
+      </div>
+      
+      <div class="table-card" id="medications" data-searchtext="medications The medications table stores information about prescribed medications for patients, including details such as medication name, dosage, route of administration, and prescription dates. It plays a crucial role in the data model by providing a centralized repository for medication-related data, enabling efficient querying and analysis. medication_id encounter_id drug_name dosage route prescribed_date end_date is_active ">
+
+        <div class="table-header">
+          <span class="table-name">medications</span>
+          <span class="badge badge-rows">2,000 rows</span>
+          <span class="badge badge-rows">8 cols</span>
+        </div>
+
+        <p class="table-desc">The medications table stores information about prescribed medications for patients, including details such as medication name, dosage, route of administration, and prescription dates. It plays a crucial role in the data model by providing a centralized repository for medication-related data, enabling efficient querying and analysis.</p>
+        <p class="purpose">💡 To store and manage medication data for clinical decision support and research purposes.</p>
+
+        
+        <div class="tags">
+          
+          <span class="tag tag-fk">🔗 → encounters.encounter_id</span>
+          
+          
+        </div>
+        
+
+        
+        <div class="warnings">
+          <h4>⚠️ Data Quality Warnings</h4>
+          <ul><li>Column &#39;drug_name&#39; has only 8 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;dosage&#39; has only 8 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;route&#39; has only 2 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;end_date&#39; has 41.5% null values</li><li>Column &#39;is_active&#39; has only 2 distinct values — consider an ENUM or CHECK constraint</li></ul>
+        </div>
+        
+
+        <!-- Column table -->
+        <table class="col-table">
+          <thead>
+            <tr>
+              <th>Column</th><th>Type</th><th>Nullable</th>
+              <th>Null %</th><th>Distinct</th><th>Min / Max</th>
+              <th>Sample Values</th><th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+          
+          <tr>
+            <td>
+              <strong>medication_id</strong>
+              <br/><span class="pk-badge">PK</span>
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>2,000<br/><small style="color:#888">100.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>MED0000001, MED0000002, MED0000003</small></td>
+            <td>This column uniquely identifies each medication with a unique alphanumeric code.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>encounter_id</strong>
+              
+              <br/><span class="fk-badge">FK → encounters</span>
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,107<br/><small style="color:#888">55.4%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>ENC0000205, ENC0001336, ENC0000419</small></td>
+            <td>This column uniquely identifies each patient encounter in a healthcare setting with a standardized code.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>drug_name</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>8<br/><small style="color:#888">0.4%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Amlodipine, Metformin, Atorvastatin</small></td>
+            <td>This column stores unique names of medications used in clinical trials or research studies.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>dosage</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>8<br/><small style="color:#888">0.4%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>5mg, 500mg, 40mg</small></td>
+            <td>The dosage column stores medication dosages as text strings in milligrams.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>route</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>2<br/><small style="color:#888">0.1%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Oral, Inhaled</small></td>
+            <td>This column stores the method by which a medication is administered to the patient.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>prescribed_date</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>1,204<br/><small style="color:#888">60.2%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2020-03-28, 2023-12-26, 2023-11-14</small></td>
+            <td>The prescribed_date column stores dates of medication prescription for each patient record in the database.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>end_date</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-high">41.5%</td>
+            <td>858<br/><small style="color:#888">42.9%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2024-06-02, 2024-03-24, 2022-12-31</small></td>
+            <td>This column stores the end date of medication prescriptions for patients in the database.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>is_active</strong>
+              
+              
+            </td>
+            <td><code>INTEGER</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>2<br/><small style="color:#888">0.1%</small></td>
+            <td>
+              
+                <small>0<br/>1</small>
+              
+            </td>
+            <td><small>0, 1</small></td>
+            <td>This column indicates whether a medication is currently active in inventory or not.</td>
+          </tr>
+          
+          </tbody>
+        </table>
+
+        <!-- Example query -->
+        <div class="query-block">SELECT m.drug_name, e.encounter_date FROM medications m JOIN encounters e ON m.encounter_id = e.encounter_id WHERE m.is_active = 1 AND e.encounter_type = &#39;office_visit&#39; ORDER BY m.prescribed_date DESC</div>
+
+        <!-- DDL -->
+        <details>
+          <summary>View CREATE TABLE DDL</summary>
+          <pre class="ddl">CREATE TABLE medications (
+        medication_id   TEXT PRIMARY KEY,
+        encounter_id    TEXT NOT NULL REFERENCES encounters(encounter_id),
+        drug_name       TEXT NOT NULL,
+        dosage          TEXT NOT NULL,
+        route           TEXT NOT NULL,
+        prescribed_date TEXT NOT NULL,
+        end_date        TEXT,
+        is_active       INTEGER NOT NULL DEFAULT 1
+    )</pre>
+        </details>
+
+      </div>
+      
+      <div class="table-card" id="patients" data-searchtext="patients The patients table stores demographic and insurance information for individual patients, serving as a central repository for patient data in the data model. patient_id first_name last_name date_of_birth gender state zip_code insurance_type created_at is_active ">
+
+        <div class="table-header">
+          <span class="table-name">patients</span>
+          <span class="badge badge-rows">500 rows</span>
+          <span class="badge badge-rows">10 cols</span>
+        </div>
+
+        <p class="table-desc">The patients table stores demographic and insurance information for individual patients, serving as a central repository for patient data in the data model.</p>
+        <p class="purpose">💡 To store and manage patient information for clinical and administrative purposes.</p>
+
+        
+        <div class="tags">
+          
+          
+          <span class="tag tag-ref">← referenced by claims</span>
+          
+          <span class="tag tag-ref">← referenced by encounters</span>
+          
+        </div>
+        
+
+        
+        <div class="warnings">
+          <h4>⚠️ Data Quality Warnings</h4>
+          <ul><li>Column &#39;gender&#39; has only 3 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;insurance_type&#39; has only 4 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;is_active&#39; has only 1 distinct values — consider an ENUM or CHECK constraint</li></ul>
+        </div>
+        
+
+        <!-- Column table -->
+        <table class="col-table">
+          <thead>
+            <tr>
+              <th>Column</th><th>Type</th><th>Nullable</th>
+              <th>Null %</th><th>Distinct</th><th>Min / Max</th>
+              <th>Sample Values</th><th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+          
+          <tr>
+            <td>
+              <strong>patient_id</strong>
+              <br/><span class="pk-badge">PK</span>
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>500<br/><small style="color:#888">100.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>PAT000001, PAT000002, PAT000003</small></td>
+            <td>The patient_id column uniquely identifies each patient in the database with a unique alphanumeric identifier.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>first_name</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>16<br/><small style="color:#888">3.2%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Robert, Priya, Fatima</small></td>
+            <td>This column stores unique identifiers for individual patients in a medical database.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>last_name</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>16<br/><small style="color:#888">3.2%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Davis, Taylor, Williams</small></td>
+            <td>The last_name column stores unique identifiers for patients in a medical database.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>date_of_birth</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>493<br/><small style="color:#888">98.6%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2001-07-19, 1976-03-10, 1969-01-11</small></td>
+            <td>The date_of_birth column stores a patient&#39;s birthdate in the format of year-month-day.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>gender</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>3<br/><small style="color:#888">0.6%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>F, O, M</small></td>
+            <td>The patients table&#39;s gender column stores a person&#39;s biological sex as either &#39;F&#39; for female or &#39;M&#39; for male.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>state</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>10<br/><small style="color:#888">2.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>OH, GA, MI</small></td>
+            <td>This column stores a two-letter state abbreviation for each patient in the United States.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>zip_code</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>498<br/><small style="color:#888">99.6%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>76494, 10336, 99714</small></td>
+            <td>This column stores unique zip codes associated with individual patients in the database.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>insurance_type</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>4<br/><small style="color:#888">0.8%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Commercial, Medicare, Self-Pay</small></td>
+            <td>This column stores the type of insurance coverage a patient has, such as commercial, Medicare, or self-pay.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>created_at</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>408<br/><small style="color:#888">81.6%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2020-09-19, 2020-06-15, 2020-05-29</small></td>
+            <td>The created_at column stores dates in the format &#39;YYYY-MM-DD&#39; representing when each patient record was created.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>is_active</strong>
+              
+              
+            </td>
+            <td><code>INTEGER</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>1<br/><small style="color:#888">0.2%</small></td>
+            <td>
+              
+                <small>1<br/>1</small>
+              
+            </td>
+            <td><small>1</small></td>
+            <td>This column indicates whether a patient&#39;s account is currently active or inactive in the system.</td>
+          </tr>
+          
+          </tbody>
+        </table>
+
+        <!-- Example query -->
+        <div class="query-block">SELECT * FROM patients WHERE state = &#39;CA&#39; AND is_active = 1; -- Retrieves all active patients from California.</div>
+
+        <!-- DDL -->
+        <details>
+          <summary>View CREATE TABLE DDL</summary>
+          <pre class="ddl">CREATE TABLE patients (
+        patient_id      TEXT PRIMARY KEY,
+        first_name      TEXT NOT NULL,
+        last_name       TEXT NOT NULL,
+        date_of_birth   TEXT NOT NULL,
+        gender          TEXT CHECK(gender IN (&#39;M&#39;,&#39;F&#39;,&#39;O&#39;)),
+        state           TEXT NOT NULL,
+        zip_code        TEXT,
+        insurance_type  TEXT CHECK(insurance_type IN (&#39;Medicare&#39;,&#39;Medicaid&#39;,&#39;Commercial&#39;,&#39;Self-Pay&#39;)),
+        created_at      TEXT NOT NULL,
+        is_active       INTEGER NOT NULL DEFAULT 1
+    )</pre>
+        </details>
+
+      </div>
+      
+      <div class="table-card" id="providers" data-searchtext="providers The providers table stores information about healthcare professionals, including their full name, specialty, NPI number, state of licensure, and hire date. This data is used to support various business processes and analytics in the healthcare industry. provider_id full_name specialty npi_number state active hired_date ">
+
+        <div class="table-header">
+          <span class="table-name">providers</span>
+          <span class="badge badge-rows">50 rows</span>
+          <span class="badge badge-rows">7 cols</span>
+        </div>
+
+        <p class="table-desc">The providers table stores information about healthcare professionals, including their full name, specialty, NPI number, state of licensure, and hire date. This data is used to support various business processes and analytics in the healthcare industry.</p>
+        <p class="purpose">💡 To provide a centralized repository for provider information, enabling efficient querying and analysis across the organization.</p>
+
+        
+        <div class="tags">
+          
+          
+          <span class="tag tag-ref">← referenced by encounters</span>
+          
+        </div>
+        
+
+        
+        <div class="warnings">
+          <h4>⚠️ Data Quality Warnings</h4>
+          <ul><li>Column &#39;specialty&#39; has only 9 distinct values — consider an ENUM or CHECK constraint</li><li>Column &#39;active&#39; has only 2 distinct values — consider an ENUM or CHECK constraint</li></ul>
+        </div>
+        
+
+        <!-- Column table -->
+        <table class="col-table">
+          <thead>
+            <tr>
+              <th>Column</th><th>Type</th><th>Nullable</th>
+              <th>Null %</th><th>Distinct</th><th>Min / Max</th>
+              <th>Sample Values</th><th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+          
+          <tr>
+            <td>
+              <strong>provider_id</strong>
+              <br/><span class="pk-badge">PK</span>
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>Yes</td>
+            <td class="null-ok">0.0%</td>
+            <td>50<br/><small style="color:#888">100.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>PRV0001, PRV0002, PRV0003</small></td>
+            <td>This column uniquely identifies each provider with a unique alphanumeric identifier.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>full_name</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>48<br/><small style="color:#888">96.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Dr. Carlos Garcia, Dr. Arjun Garcia, Dr. William Williams</small></td>
+            <td>This column stores unique full names of healthcare providers with no duplicates allowed.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>specialty</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>9<br/><small style="color:#888">18.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>Neurology, Emergency Medicine, Orthopedics</small></td>
+            <td>This column stores unique specialty names for each provider in the database.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>npi_number</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>50<br/><small style="color:#888">100.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>NPI1106456634, NPI1127978094, NPI1251837136</small></td>
+            <td>The npi_number column uniquely identifies healthcare providers with a unique National Provider Identifier number.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>state</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>10<br/><small style="color:#888">20.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>NY, OH, NC</small></td>
+            <td>This column stores unique two-letter state abbreviations for healthcare providers in the United States.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>active</strong>
+              
+              
+            </td>
+            <td><code>INTEGER</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>2<br/><small style="color:#888">4.0%</small></td>
+            <td>
+              
+                <small>0<br/>1</small>
+              
+            </td>
+            <td><small>0, 1</small></td>
+            <td>This column indicates whether a provider is currently active or not in the database.</td>
+          </tr>
+          
+          <tr>
+            <td>
+              <strong>hired_date</strong>
+              
+              
+            </td>
+            <td><code>TEXT</code></td>
+            <td>No</td>
+            <td class="null-ok">0.0%</td>
+            <td>50<br/><small style="color:#888">100.0%</small></td>
+            <td>
+              —
+            </td>
+            <td><small>2022-09-22, 2022-09-05, 2022-08-18</small></td>
+            <td>The hired_date column stores dates when providers were hired, in YYYY-MM-DD format.</td>
+          </tr>
+          
+          </tbody>
+        </table>
+
+        <!-- Example query -->
+        <div class="query-block">SELECT * FROM providers WHERE active = 1 AND specialty = &#39;Primary Care&#39; ORDER BY hired_date DESC; -- Retrieves all primary care providers who are currently active, listed in reverse chronological order by hire date.</div>
+
+        <!-- DDL -->
+        <details>
+          <summary>View CREATE TABLE DDL</summary>
+          <pre class="ddl">CREATE TABLE providers (
+        provider_id     TEXT PRIMARY KEY,
+        full_name       TEXT NOT NULL,
+        specialty       TEXT NOT NULL,
+        npi_number      TEXT UNIQUE NOT NULL,
+        state           TEXT NOT NULL,
+        active          INTEGER NOT NULL DEFAULT 1,
+        hired_date      TEXT NOT NULL
+    )</pre>
+        </details>
+
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<script>
+function filterTables(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.table-card').forEach(card => {
+    const text = card.dataset.searchtext.toLowerCase();
+    card.classList.toggle('hidden', q.length > 0 && !text.includes(q));
+  });
+}
+</script>
+</body>
+</html>
