@@ -1,12 +1,12 @@
-# 📖 AI Data Dictionary Generator — Auto-Document Any Database
+# AI Data Dictionary Generator — Auto-Document Any Database
 
-An AI-powered tool that points at any SQLite or DuckDB database and automatically generates a **complete, professional data catalog** — table descriptions, column definitions, data lineage notes, and usage examples — using a local LLM (no API cost).
+An AI-powered tool that points at any SQLite or DuckDB database and automatically generates a **complete, professional data catalog** — table descriptions, column definitions, data quality warnings, and usage examples — using a local LLM (no API cost).
 
 Output is a clean HTML data catalog and Markdown documentation, ready to share with your team or drop into Confluence/GitHub Wiki.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 [Database] (SQLite / DuckDB)
@@ -18,7 +18,7 @@ Output is a clean HTML data catalog and Markdown documentation, ready to share w
 [Data Profiler]                ← row counts, null %, cardinality, min/max, samples
        │
        ▼
-[Ollama LLM — llama3.2]        ← generates descriptions, lineage notes, usage tips
+[Ollama LLM — qwen3.5:latest]  ← generates descriptions, purpose, example SQL
        │
        ▼
 [Jinja2 Template Engine]       ← renders HTML + Markdown catalog
@@ -29,42 +29,47 @@ Output is a clean HTML data catalog and Markdown documentation, ready to share w
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Component | Tool | Cost |
 |-----------|------|------|
 | Database | SQLite / DuckDB | Free |
-| LLM | Ollama + LLaMA3.2 | Free (local) |
+| LLM | Ollama + qwen3.5:latest | Free (local) |
 | Templating | Jinja2 | Free |
 | Data Profiling | Pandas + DuckDB | Free |
 | UI | Streamlit | Free |
 | Output | HTML + Markdown | Free |
+| Package Manager | uv | Free |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 data-dict-generator/
 ├── README.md
-├── requirements.txt
+├── pyproject.toml            # uv project config & dependencies
+├── uv.lock                   # locked dependency versions
+├── requirements.txt          # legacy reference (uv is used instead)
+├── .env
 ├── .env.example
+├── start.sh                  # one-command startup
 ├── sample_data/
-│   ├── create_sample_db.py       # Creates a realistic healthcare-style SQLite DB
-│   └── healthcare_sample.db      # Auto-generated sample database
+│   ├── create_sample_db.py   # creates a realistic healthcare-style SQLite DB
+│   └── healthcare_sample.db  # auto-generated sample database
 ├── src/
 │   ├── __init__.py
-│   ├── introspector.py           # Schema & DDL extraction
-│   ├── profiler.py               # Statistical data profiling
-│   ├── llm_describer.py          # Ollama LLM description generator
-│   └── catalog_builder.py        # Orchestrates full catalog generation
+│   ├── introspector.py       # schema & DDL extraction
+│   ├── profiler.py           # statistical data profiling
+│   ├── llm_describer.py      # Ollama LLM description generator
+│   └── catalog_builder.py    # orchestrates full catalog generation
 ├── templates/
-│   ├── catalog.html.j2           # Jinja2 HTML template
-│   └── catalog.md.j2             # Jinja2 Markdown template
-├── output/                       # Generated catalogs go here
+│   ├── catalog.html.j2       # Jinja2 HTML template
+│   └── catalog.md.j2         # Jinja2 Markdown template
+├── output/                   # generated catalogs go here
 │   └── .gitkeep
-├── app.py                        # Streamlit UI
-├── generate.py                   # CLI: generate catalog from command line
+├── app.py                    # Streamlit UI
+├── generate.py               # CLI: generate catalog from command line
 └── tests/
     ├── __init__.py
     ├── test_introspector.py
@@ -73,77 +78,91 @@ data-dict-generator/
 
 ---
 
-## 🚀 Setup & Installation
+## Setup & Installation
 
 ### Prerequisites
-- macOS, Python 3.10+
-- Ollama running with LLaMA3.2 pulled (see RAG project setup)
+- macOS, Python 3.11+
+- [uv](https://docs.astral.sh/uv/) — `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- Ollama running with qwen3.5 pulled:
+  ```bash
+  ollama pull qwen3.5:latest
+  ```
 
-### Step 1 — Install Dependencies
+### Step 1 — Install dependencies
 ```bash
 git clone https://github.com/YOUR_USERNAME/data-dict-generator.git
 cd data-dict-generator
-
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+uv sync
 ```
 
-### Step 2 — Create Sample Database
+### Step 2 — Create the sample database
 ```bash
-python sample_data/create_sample_db.py
+uv run python sample_data/create_sample_db.py
 # Creates: sample_data/healthcare_sample.db
 # Tables: patients, encounters, diagnoses, medications, providers, claims
 ```
 
-### Step 3 — Generate the Data Catalog (CLI)
+### Step 3 — Generate the catalog (CLI)
 ```bash
 # Point at the sample database
-python generate.py --db sample_data/healthcare_sample.db
+uv run python generate.py --db sample_data/healthcare_sample.db
 
 # Or your own SQLite database
-python generate.py --db /path/to/your/database.db --output-dir output/
+uv run python generate.py --db /path/to/your/database.db --output-dir output/
 
-# Skip LLM descriptions (fast mode — just schema + profiling)
-python generate.py --db sample_data/healthcare_sample.db --no-llm
+# Fast mode — schema + profiling only, no LLM
+uv run python generate.py --db sample_data/healthcare_sample.db --no-llm
 ```
 
-### Step 4 — View the Catalog
+### Step 4 — Launch the Streamlit app
 ```bash
-# Open the HTML catalog in your browser
-open output/catalog.html
+./start.sh
+# Opens http://localhost:8502
+```
 
-# Or launch the interactive Streamlit app
-streamlit run app.py
+Or manually:
+```bash
+uv run streamlit run app.py --server.port 8502
 ```
 
 ---
 
-## 📊 What Gets Generated
+## Configuration
+
+Edit `.env` (copy from `.env.example`):
+
+```env
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=qwen3.5:latest
+OUTPUT_DIR=./output
+```
+
+---
+
+## What Gets Generated
 
 For every table, the catalog includes:
 
 | Section | Details |
 |---------|---------|
 | **AI Description** | LLM-generated plain English explanation of the table's purpose |
-| **Column Definitions** | Name, type, nullable, AI-generated description |
+| **Column Definitions** | Name, type, nullable, AI-generated one-sentence description |
 | **Data Profile** | Row count, null %, cardinality, min/max/avg for numerics |
 | **Sample Values** | Top 5 most frequent values per column |
-| **Relationships** | Foreign key relationships and inferred lineage |
+| **Relationships** | Foreign key relationships mapped across tables |
 | **Usage Examples** | LLM-generated example SQL queries |
-| **Data Quality Notes** | Columns with high null rates, low cardinality warnings |
+| **Data Quality Warnings** | Columns with >20% nulls or suspiciously low cardinality |
 
 ---
 
-## 🧪 Running Tests
+## Running Tests
 ```bash
-pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ---
 
-## 🌱 Potential Extensions
-- Add DuckDB support (already stubbed in introspector)
+## Potential Extensions
 - Connect directly to BigQuery or PostgreSQL for production catalogs
 - Add data freshness tracking (last updated timestamps)
 - Export to dbt schema.yml format
@@ -151,6 +170,6 @@ pytest tests/ -v
 
 ---
 
-## 👤 Author
+## Author
 **Aritra Ghorai** — Senior Data Engineer  
 [LinkedIn](https://linkedin.com/in/YOUR_PROFILE) | [GitHub](https://github.com/YOUR_USERNAME)

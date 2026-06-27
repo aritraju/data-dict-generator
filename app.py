@@ -20,14 +20,14 @@ st.set_page_config(
 )
 
 st.title("📖 AI Data Dictionary Generator")
-st.caption("Powered by Ollama (llama3.2) · 100% local · No API costs")
+st.caption("Powered by Ollama (qwen3.5) · 100% local · No API costs")
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.subheader("⚙️ Configuration")
     use_llm = st.checkbox("Enable AI descriptions (Ollama)", value=True)
     if use_llm:
-        st.info("Ensure Ollama is running with llama3.2 pulled.")
+        st.info("Ensure Ollama is running with qwen3.5 pulled.")
 
     st.divider()
     st.subheader("📂 Database Source")
@@ -127,5 +127,5 @@ for table in catalog.tables:
 
         st.code(table.example_query, language="sql")
 
-        with st.expander("DDL"):
-            st.code(table.ddl, language="sql")
+        st.markdown("**DDL**")
+        st.code(table.ddl, language="sql")

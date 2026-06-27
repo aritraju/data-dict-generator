@@ -8,3 +8,6 @@ output/*.html
 output/*.md
 sample_data/*.db
 .DS_Store
+
+.pytest_cache/
+*.log
